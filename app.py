@@ -10,12 +10,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 from fpdf import FPDF
 from datetime import datetime
-import io
 
-# إعدادات الصفحة
 st.set_page_config(page_title="Insurance AI Pro", layout="wide", page_icon="🩺")
 
-# تحسين الـ CSS لشريط الحالة ليكون عصرياً
 st.markdown("""
 <style>
     .status-bar {
@@ -35,6 +32,7 @@ st.markdown("""
 def train_engine():
     try:
         df = pd.read_csv('insurance.csv')
+        df = df.drop_duplicates().reset_index(drop=True)
         df['bmi_smoker'] = df['bmi'] * df['smoker'].map({'yes': 1, 'no': 0})
         X = df.drop('charges', axis=1)
         y = df['charges']
@@ -77,7 +75,6 @@ with st.sidebar:
     
     st.markdown(f"<h2 style='color:{color}; text-align:center;'>{status}</h2>", unsafe_allow_html=True)
     
-    # رسم توضيحي سريع لمقياس الـ BMI
     st.caption("Standard BMI Scale: 18.5 - 24.9 is optimal.")
     
 
@@ -161,29 +158,37 @@ if st.button("📄 Export Comprehensive Medical-Financial Report", use_container
     pdf.add_page()
     pdf.set_fill_color(240, 240, 240)
     pdf.rect(0, 0, 210, 297, 'F')
-    
+
     pdf.set_font("Arial", 'B', 20)
     pdf.set_text_color(44, 62, 80)
     pdf.cell(0, 20, "Health Risk & Insurance Report", ln=1, align='C')
-    
+
     pdf.set_font("Arial", size=12)
     pdf.ln(10)
     pdf.cell(0, 10, f"Patient Name: {name}", ln=1)
     pdf.cell(0, 10, f"BMI Status: {status} ({bmi})", ln=1)
     pdf.cell(100, 10, f"Current Charges: ${pred:,.2f}", ln=0)
     pdf.cell(100, 10, f"Optimization Savings: ${savings:,.2f}", ln=1)
-    
+
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 14)
     pdf.cell(0, 10, "AI Recommendations:", ln=1)
     pdf.set_font("Arial", size=11)
-    pdf.multi_cell(0, 10, f"To achieve a {savings/pred:.0%} reduction, focus on reaching a BMI of {target_bmi} and maintaining a smoke-free lifestyle. This model predicts your risk based on 1,338 historical cases with {accuracy:.1%} accuracy.")
+    pdf.multi_cell(
+        0, 10,
+        f"To achieve a {savings/pred:.0%} reduction, focus on reaching a BMI of {target_bmi} "
+        f"and maintaining a smoke-free lifestyle. This model predicts your risk based on "
+        f"1,338 historical cases with {accuracy:.1%} accuracy."
+    )
+    pdf_bytes = pdf.output(dest="S").encode("latin-1")
 
-    buffer = io.BytesIO()
-    pdf.output(buffer)
-    st.download_button("Click here to download PDF", data=buffer.getvalue(), file_name=f"Report_{name}.pdf", mime="application/pdf")
+    st.download_button(
+        "Click here to download PDF",
+        data=pdf_bytes,
+        file_name=f"Report_{name}.pdf",
+        mime="application/pdf"
+    )
 
-# Status Bar
 st.markdown(f"""
 <div class="status-bar">
     🟢 System Online | Model Accuracy: {accuracy:.1%} | Security: Encrypted
